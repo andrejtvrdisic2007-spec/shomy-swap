@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  appointments  Appointment[]
+  swapListings  SwapListing[]
+  swapRequests  SwapRequest[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Appointment {
+  id        String            @id @default(cuid())
+  userId    String
+  date      DateTime          @db.Date
+  timeSlot  String
+  status    AppointmentStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  swapListing SwapListing?
+
+  swapRequestsAsOffered SwapRequest[] @relation("OfferedAppointment")
+
+  @@unique([date, timeSlot])
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  ACTIVE
+  LISTED
+  SWAPPED
+  CANCELLED
+}
+
+model SwapListing {
+  id             String            @id @default(cuid())
+  appointmentId  String            @unique
+  userId         String
+  preferredDates Json
+  message        String?
+  status         SwapListingStatus @default(OPEN)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  appointment  Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  swapRequests SwapRequest[]
+
+  @@map("swap_listings")
+}
+
+enum SwapListingStatus {
+  OPEN
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model SwapRequest {
+  id                   String            @id @default(cuid())
+  listingId            String
+  requesterId          String
+  offeredAppointmentId String
+  status               SwapRequestStatus @default(PENDING)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  listing             SwapListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  requester           User        @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  offeredAppointment  Appointment @relation("OfferedAppointment", fields: [offeredAppointmentId], references: [id])
+
+  @@map("swap_requests")
+}
+
+enum SwapRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  SWAP_REQUEST_RECEIVED
+  SWAP_REQUEST_ACCEPTED
+  SWAP_REQUEST_REJECTED
+  SWAP_COMPLETED
+}
