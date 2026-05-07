@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = 'force-dynamic';
 
-import { useState, FormEvent } from "react";
+import { Suspense, useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { Scissors, Eye, EyeOff, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { SHOP_NAME } from "@/lib/constants";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
@@ -104,5 +104,12 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Učitavanje...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
